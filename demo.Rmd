@@ -1,0 +1,174 @@
+---
+title: "Untitled"
+output: html_document
+date: '2022-05-27'
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(GGally)
+library(skimr)
+library(plotly)
+library(ggthemes)
+theme_set(theme_base())
+
+tuesdata <- tidytuesdayR::tt_load('2020-07-28')
+penguins <- tuesdata$penguins
+
+flubbed_penguins <- penguins %>% 
+  mutate(species = ifelse(row_number() %% 4 == 0 & species == "Adelie",
+                          "Adlie",
+                          species),
+         species = ifelse(row_number() %% 3 == 0 & species == "Chinstrap",
+         "Chinstrapp",
+         species)) %>% 
+  slice(sample(1:n()))
+
+```
+
+```{r}
+flubbed_penguins %>% 
+  pivot_longer(where(is.character), names_to = "col_name") %>% 
+  count(col_name, value) %>% 
+  filter(!is.na(value)) %>% 
+  mutate(value = fct_reorder(value, col_name)) %>% 
+  ggplot(aes(value, n, fill = col_name)) +
+  geom_col() +
+  coord_flip() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+
+
+```{r}
+flubbed_penguins %>% 
+  pivot_longer(everything(), values_transform = is.na) %>% 
+  group_by(name) %>% 
+  summarize(pct_na = mean(value)) %>% 
+  ungroup() %>% 
+  mutate(name = fct_reorder(name, pct_na)) %>% 
+  ggplot(aes(name, pct_na)) +
+  geom_col() +
+  coord_flip() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+
+```{r}
+flubbed_penguins %>% 
+  mutate(species = str_replace(species, "Adliei", "Adelie"),
+         species = str_replace(species, "Chinstrapp", "Chinstrap")) %>% 
+  pivot_longer(where(is.character), names_to = "col_name") %>% 
+  count(col_name, value) %>% 
+  filter(!is.na(value)) %>% 
+  mutate(value = fct_reorder(value, col_name)) %>% 
+  ggplot(aes(value, n, fill = col_name)) +
+  geom_col() +
+  coord_flip() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+
+```{r}
+fixed_penguins <- flubbed_penguins %>% 
+  mutate(species = str_replace(species, "Adlie", "Adelie"),
+         species = str_replace(species, "Chinstrapp", "Chinstrap"))
+fixed_penguins %>% 
+  pivot_longer(where(is.character), names_to = "col_name") %>% 
+  count(col_name, value) %>% 
+  filter(!is.na(value)) %>% 
+  mutate(value = fct_reorder(value, col_name)) %>% 
+  ggplot(aes(value, n, fill = col_name)) +
+  geom_col() +
+  coord_flip() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+
+```{r}
+fixed_penguins %>% 
+  ggplot(aes(bill_length_mm, bill_depth_mm)) +
+  geom_point() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+
+```{r}
+fixed_penguins %>% 
+  ggplot(aes(bill_length_mm, flipper_length_mm)) +
+  geom_point() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+
+```{r}
+fixed_penguins %>% 
+  ggplot(aes(bill_length_mm, body_mass_g)) +
+  geom_point() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+
+```{r}
+fixed_penguins %>% 
+  ggplot(aes(bill_depth_mm, flipper_length_mm)) +
+  geom_point() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+
+
+```{r}
+fixed_penguins %>% 
+  ggplot(aes(bill_depth_mm, body_mass_g)) +
+  geom_point() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+```{r}
+fixed_penguins %>% 
+  ggplot(aes(flipper_length_mm, body_mass_g)) +
+  geom_point() +
+  theme(text = element_text(family = 'Helvetica'),
+        panel.background = element_rect(fill = '#cbc26d'),
+        plot.background = element_rect(fill = '#fff59d'),
+        legend.background = element_rect(fill = '#cbc26d'))
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
