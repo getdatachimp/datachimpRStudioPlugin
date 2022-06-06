@@ -2,5 +2,4 @@
 
 export(connect)
 export(send)
-export(stop_sending)
 importFrom(magrittr,"%>%")
