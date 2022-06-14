@@ -19,6 +19,11 @@ old_file <- NULL
 connect <- function() {
   ws$onOpen(function(event) {
     cat("Connection opened\n")
+    user_id <- Sys.getenv("CHIMP")
+    mirrorAuthToken <- Sys.getenv("CHIMP_TOKEN")
+    ws$send(jsonlite::toJSON(list(userId = as.numeric(user_id),
+                                  mirrorAuthToken = mirrorAuthToken),
+                             auto_unbox = TRUE))
   })
   ws$onMessage(function(event) {
     if (event$data == "pong") {
