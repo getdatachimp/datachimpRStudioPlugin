@@ -1,5 +1,0 @@
-![](images/paste-22E3B7F5.png)
-
-```{r}
-library(tidyverse)
-```

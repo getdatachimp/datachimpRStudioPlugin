@@ -2,6 +2,7 @@ ws <- NULL
 history_loop <- NULL
 old_file <- NULL
 
+
 .onLoad <- function(libname, pkgname) {
   if (!is.null(ws)) {
     ws$close()
@@ -9,7 +10,10 @@ old_file <- NULL
   if (!is.null(history_loop)) {
     later::destroy_loop(history_loop)
   }
-  ws <<- websocket::WebSocket$new("ws://localhost:8765/", autoConnect = FALSE)
+  mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
+                              "wss://mirror.datachimp.app",
+                              Sys.getenv("MIRROR_SERVER_URL"))
+  ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
   history_loop <<- later::create_loop()
 }
 
@@ -75,7 +79,6 @@ send <- function(txt) {
 }
 
 get_last_valid_command <- function(lines) {
-
   trimmed_lines <- lines %>%
     purrr::discard(~ . == "" || . == 'devtools::load_all(".")')
   i <- length(trimmed_lines)
@@ -109,7 +112,6 @@ is_valid_command <- function(cmd) {
 
 safe_send <- function(cmd) {
   if (!is.null(cmd) && stringr::str_length(cmd) > 0) {
-    print(cmd)
     ws$send(cmd)
     return(T)
   }
