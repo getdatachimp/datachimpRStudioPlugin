@@ -3,7 +3,3 @@ Description: Connects to datachimp server
 Binding: connect
 Interactive: false
 
-Name: Data Chimp Send
-Description: Sends code to datachimp server
-Binding: send
-Interactive: false

@@ -1,41 +1,42 @@
 ws <- NULL
 history_loop <- NULL
 old_file <- NULL
-
+mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
+                            "wss://mirror.datachimp.app",
+                            Sys.getenv("MIRROR_SERVER_URL"))
 
 .onLoad <- function(libname, pkgname) {
+  log("calling .onLoad")
   if (!is.null(ws)) {
+    log("closing old websocket")
     ws$close()
   }
   if (!is.null(history_loop)) {
+    log("destorying old loop")
     later::destroy_loop(history_loop)
   }
-  mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
-                              "wss://mirror.datachimp.app",
-                              Sys.getenv("MIRROR_SERVER_URL"))
   ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
   history_loop <<- later::create_loop()
 }
 
 
 #' connects to some stuff
+#' @importFrom magrittr %>%
 #' @export
 connect <- function() {
   ws$onOpen(function(event) {
-    cat("Connection opened\n")
-    user_id <- Sys.getenv("CHIMP")
     mirrorAuthToken <- Sys.getenv("CHIMP_TOKEN")
-    ws$send(jsonlite::toJSON(list(userId = as.numeric(user_id),
-                                  mirrorAuthToken = mirrorAuthToken),
+    ws$send(jsonlite::toJSON(list(mirrorAuthToken = mirrorAuthToken),
                              auto_unbox = TRUE))
   })
   ws$onMessage(function(event) {
-    if (event$data == "pong") {
-      rstudioapi::insertText(
-        "fixed_penguins %>%
-  ggplot(aes(bill_length_mm, bill_depth_mm)) +
-  geom_point()"
-      )
+    message <- jsonlite::fromJSON(event$data)
+    if (message %>% pluck_str("type") == "authStatus" && message %>% pluck_str("value") == "authenticated") {
+      print("Connection opened\n")
+      send()
+    }
+    if (message %>% pluck_str("type") == "codeFromVizualization") {
+      rstudioapi::insertText(message %>% pluck("code"))
     }
   })
   ws$onClose(function(event) {
@@ -43,7 +44,7 @@ connect <- function() {
         " and reason ", event$reason, "\n",
         sep = ""
     )
-    ws <- websocket::WebSocket$new("ws://localhost:8765/", autoConnect = FALSE)
+    ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
   })
   ws$onError(function(event) {
     cat("Client failed to connect: ", event$message, "\n")
@@ -51,9 +52,8 @@ connect <- function() {
   ws$connect()
 }
 
-#' @export
 #' @importFrom magrittr %>%
-send <- function(txt) {
+send <- function() {
   savehistory(file = "/tmp/.DC_Rhistory")
   file_contents <- readr::read_file("/tmp/.DC_Rhistory")
   if (is.null(old_file)) {
@@ -76,6 +76,10 @@ send <- function(txt) {
     }
   }
   later::later(send, 1, history_loop)
+}
+
+pluck_str <- function(lst, ...) {
+  purrr::pluck(lst, ..., .default = "")
 }
 
 get_last_valid_command <- function(lines) {
@@ -116,4 +120,11 @@ safe_send <- function(cmd) {
     return(T)
   }
   return(F)
+}
+
+log <- function(txt) {
+  enabled <- Sys.getenv("DC_DEBUG") != ""
+  if (enabled) {
+    print(txt)
+  }
 }
