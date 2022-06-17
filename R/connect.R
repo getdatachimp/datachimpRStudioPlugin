@@ -19,7 +19,6 @@ mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
   history_loop <<- later::create_loop()
 }
 
-
 #' connects to some stuff
 #' @importFrom magrittr %>%
 #' @export
@@ -30,13 +29,15 @@ connect <- function() {
                              auto_unbox = TRUE))
   })
   ws$onMessage(function(event) {
+    log("received message")
     message <- jsonlite::fromJSON(event$data)
     if (message %>% pluck_str("type") == "authStatus" && message %>% pluck_str("value") == "authenticated") {
       print("Connection opened\n")
       send()
     }
-    if (message %>% pluck_str("type") == "codeFromVizualization") {
-      rstudioapi::insertText(message %>% pluck("code"))
+    if (message %>% pluck_str("type") == "codeFromVisualization") {
+      log("inserting text")
+      rstudioapi::insertText(message %>% pluck_str("code"))
     }
   })
   ws$onClose(function(event) {
@@ -45,6 +46,8 @@ connect <- function() {
         sep = ""
     )
     ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
+    later::destroy_loop(history_loop)
+    history_loop <<- later::create_loop()
   })
   ws$onError(function(event) {
     cat("Client failed to connect: ", event$message, "\n")
@@ -105,6 +108,8 @@ get_last_valid_command <- function(lines) {
   }
 }
 
+
+
 is_valid_command <- function(cmd) {
   tryCatch({
     parse(text = cmd)
@@ -116,11 +121,13 @@ is_valid_command <- function(cmd) {
 
 safe_send <- function(cmd) {
   if (!is.null(cmd) && stringr::str_length(cmd) > 0) {
-    ws$send(cmd)
+    ws$send(jsonlite::toJSON(list(type = "execute", cmd = cmd), auto_unbox = T))
     return(T)
   }
   return(F)
 }
+
+
 
 log <- function(txt) {
   enabled <- Sys.getenv("DC_DEBUG") != ""
