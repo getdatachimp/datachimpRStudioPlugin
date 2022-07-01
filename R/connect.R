@@ -55,10 +55,12 @@ connect <- function() {
   ws$connect()
 }
 
+
+
 #' @importFrom magrittr %>%
 send <- function() {
-  savehistory(file = "/tmp/.DC_Rhistory")
-  file_contents <- readr::read_file("/tmp/.DC_Rhistory")
+  savehistory(file = ".DC_Rhistory")
+  file_contents <- readr::read_file(".DC_Rhistory")
   if (is.null(old_file)) {
     lines <- stringr::str_split(file_contents, "\n")[[1]]
     if (safe_send(get_last_valid_command(lines))) {
