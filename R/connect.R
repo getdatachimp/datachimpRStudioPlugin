@@ -1,35 +1,37 @@
-dc_ws <- NULL
-history_loop <- NULL
-old_file <- NULL
+dc_env <- new.env(parent = emptyenv())
+dc_env$dc_ws <- NULL
+dc_env$history_loop <- NULL
+dc_env$old_file <- NULL
+
 mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
                             "wss://mirror.datachimp.app",
                             Sys.getenv("MIRROR_SERVER_URL"))
 
 .onLoad <- function(libname, pkgname) {
   log("calling .onLoad")
-  if (!is.null(dc_ws)) {
+  if (!is.null(dc_env$dc_ws)) {
     log("closing old websocket")
-    dc_ws$close()
+    dc_env$dc_ws$close()
   }
-  if (!is.null(history_loop)) {
+  if (!is.null(dc_env$history_loop)) {
     log("destorying old loop")
-    later::destroy_loop(history_loop)
+    later::destroy_loop(dc_env$history_loop)
   }
   log(mirror_server_url)
-  dc_ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
-  history_loop <<- later::create_loop()
+  dc_env$dc_ws <- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
+  dc_env$history_loop <- later::create_loop()
 }
 
 #' connects to some stuff
 #' @importFrom magrittr %>%
 #' @export
 connect <- function() {
-  dc_ws$onOpen(function(event) {
+  dc_env$dc_ws$onOpen(function(event) {
     mirrorAuthToken <- Sys.getenv("CHIMP_TOKEN")
-    dc_ws$send(jsonlite::toJSON(list(mirrorAuthToken = mirrorAuthToken),
+    dc_env$dc_ws$send(jsonlite::toJSON(list(mirrorAuthToken = mirrorAuthToken),
                              auto_unbox = TRUE))
   })
-  dc_ws$onMessage(function(event) {
+  dc_env$dc_ws$onMessage(function(event) {
     log("received message")
     message <- jsonlite::fromJSON(event$data)
     if (message %>% pluck_str("type") == "authStatus" && message %>% pluck_str("value") == "authenticated") {
@@ -41,19 +43,19 @@ connect <- function() {
       rstudioapi::insertText(message %>% pluck_str("code"))
     }
   })
-  dc_ws$onClose(function(event) {
+  dc_env$dc_ws$onClose(function(event) {
     cat("Client disconnected with code ", event$code,
         " and reason ", event$reason, "\n",
         sep = ""
     )
-    dc_ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
-    later::destroy_loop(history_loop)
-    history_loop <<- later::create_loop()
+    dc_env$dc_ws <- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
+    later::destroy_loop(dc_env$history_loop)
+    dc_env$history_loop <- later::create_loop()
   })
-  dc_ws$onError(function(event) {
+  dc_env$dc_ws$onError(function(event) {
     cat("Client failed to connect: ", event$message, "\n")
   })
-  dc_ws$connect()
+  dc_env$dc_ws$connect()
 }
 
 
@@ -62,13 +64,13 @@ connect <- function() {
 send <- function() {
   savehistory(file = ".DC_Rhistory")
   file_contents <- readr::read_file(".DC_Rhistory")
-  if (is.null(old_file)) {
+  if (is.null(dc_env$old_file)) {
     lines <- stringr::str_split(file_contents, "\n")[[1]]
     if (safe_send(get_last_valid_command(lines))) {
-      old_file <<- file_contents
+      dc_env$old_file <- file_contents
     }
-  } else if (old_file != file_contents) {
-    old_lines <- stringr::str_split(old_file, "\n")[[1]]
+  } else if (dc_env$old_file != file_contents) {
+    old_lines <- stringr::str_split(dc_env$old_file, "\n")[[1]]
     new_lines <- stringr::str_split(file_contents, "\n")[[1]]
     diff_lines <- NULL
     for (i in 1:length(new_lines)) {
@@ -78,10 +80,10 @@ send <- function() {
       }
     }
     if (safe_send(get_last_valid_command(diff_lines))) {
-      old_file <<- file_contents
+      dc_env$old_file <- file_contents
     }
   }
-  later::later(send, 1, history_loop)
+  later::later(send, 1, dc_env$history_loop)
 }
 
 pluck_str <- function(lst, ...) {
@@ -124,7 +126,7 @@ is_valid_command <- function(cmd) {
 
 safe_send <- function(cmd) {
   if (!is.null(cmd) && stringr::str_length(cmd) > 0) {
-    dc_ws$send(jsonlite::toJSON(list(type = "execute", cmd = cmd), auto_unbox = T))
+    dc_env$dc_ws$send(jsonlite::toJSON(list(type = "execute", cmd = cmd), auto_unbox = T))
     return(T)
   }
   return(F)
