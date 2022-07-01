@@ -1,4 +1,4 @@
-ws <- NULL
+dc_ws <- NULL
 history_loop <- NULL
 old_file <- NULL
 mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
@@ -7,16 +7,16 @@ mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
 
 .onLoad <- function(libname, pkgname) {
   log("calling .onLoad")
-  if (!is.null(ws)) {
+  if (!is.null(dc_ws)) {
     log("closing old websocket")
-    ws$close()
+    dc_ws$close()
   }
   if (!is.null(history_loop)) {
     log("destorying old loop")
     later::destroy_loop(history_loop)
   }
   log(mirror_server_url)
-  ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
+  dc_ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
   history_loop <<- later::create_loop()
 }
 
@@ -24,12 +24,12 @@ mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
 #' @importFrom magrittr %>%
 #' @export
 connect <- function() {
-  ws$onOpen(function(event) {
+  dc_ws$onOpen(function(event) {
     mirrorAuthToken <- Sys.getenv("CHIMP_TOKEN")
-    ws$send(jsonlite::toJSON(list(mirrorAuthToken = mirrorAuthToken),
+    dc_ws$send(jsonlite::toJSON(list(mirrorAuthToken = mirrorAuthToken),
                              auto_unbox = TRUE))
   })
-  ws$onMessage(function(event) {
+  dc_ws$onMessage(function(event) {
     log("received message")
     message <- jsonlite::fromJSON(event$data)
     if (message %>% pluck_str("type") == "authStatus" && message %>% pluck_str("value") == "authenticated") {
@@ -41,19 +41,19 @@ connect <- function() {
       rstudioapi::insertText(message %>% pluck_str("code"))
     }
   })
-  ws$onClose(function(event) {
+  dc_ws$onClose(function(event) {
     cat("Client disconnected with code ", event$code,
         " and reason ", event$reason, "\n",
         sep = ""
     )
-    ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
+    dc_ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
     later::destroy_loop(history_loop)
     history_loop <<- later::create_loop()
   })
-  ws$onError(function(event) {
+  dc_ws$onError(function(event) {
     cat("Client failed to connect: ", event$message, "\n")
   })
-  ws$connect()
+  dc_ws$connect()
 }
 
 
@@ -124,7 +124,7 @@ is_valid_command <- function(cmd) {
 
 safe_send <- function(cmd) {
   if (!is.null(cmd) && stringr::str_length(cmd) > 0) {
-    ws$send(jsonlite::toJSON(list(type = "execute", cmd = cmd), auto_unbox = T))
+    dc_ws$send(jsonlite::toJSON(list(type = "execute", cmd = cmd), auto_unbox = T))
     return(T)
   }
   return(F)
