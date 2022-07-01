@@ -15,6 +15,7 @@ mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
     log("destorying old loop")
     later::destroy_loop(history_loop)
   }
+  log(mirror_server_url)
   ws <<- websocket::WebSocket$new(mirror_server_url, autoConnect = FALSE)
   history_loop <<- later::create_loop()
 }
