@@ -95,7 +95,11 @@ pluck_str <- function(lst, ...) {
 
 get_last_valid_command <- function(lines) {
   trimmed_lines <- lines %>%
-    purrr::discard(~ . == "" || . == 'devtools::load_all(".")' || . == "datachimpR::connect()", "datachimpR:::connect()")
+    purrr::discard(~ . == "" ||
+                     . == 'devtools::load_all(".")' ||
+                     . == "datachimpR::connect()" ||
+                     . == "datachimpR:::connect()" ||
+                     startsWith(., "?"))
   i <- length(trimmed_lines)
   if (i == 0) {
     return(NULL)
