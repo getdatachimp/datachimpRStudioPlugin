@@ -1,5 +1,5 @@
 Name: Data Chimp Connect
 Description: Connects to datachimp server
 Binding: connect
-Interactive: false
+Interactive: true
 

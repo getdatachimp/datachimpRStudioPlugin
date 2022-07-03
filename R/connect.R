@@ -34,9 +34,12 @@ connect <- function() {
   dc_env$dc_ws$onMessage(function(event) {
     log("received message")
     message <- jsonlite::fromJSON(event$data)
-    if (message %>% pluck_str("type") == "authStatus" && message %>% pluck_str("value") == "authenticated") {
+    if (message %>% pluck_str("type") == "sessionStatus" && message %>% pluck_str("envCreated") == T) {
       print("Connection opened\n")
       send()
+    }
+    if (message %>% pluck_str("type") == "executionResult" && length(message %>% purrr::pluck("response", "result")) == 0) {
+      warning(paste("Unable to execute", message %>% pluck_str("response", "cmd"), "remotely. Your environment may be out of sync with data chimp."))
     }
     if (message %>% pluck_str("type") == "codeFromVisualization") {
       log("inserting text")
@@ -92,7 +95,7 @@ pluck_str <- function(lst, ...) {
 
 get_last_valid_command <- function(lines) {
   trimmed_lines <- lines %>%
-    purrr::discard(~ . == "" || . == 'devtools::load_all(".")')
+    purrr::discard(~ . == "" || . == 'devtools::load_all(".")' || . == "datachimpR::connect()", "datachimpR:::connect()")
   i <- length(trimmed_lines)
   if (i == 0) {
     return(NULL)
