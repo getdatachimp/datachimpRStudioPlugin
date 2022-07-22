@@ -5,7 +5,8 @@ dc_upload <- function(path) {
   base_url <- Sys.getenv("DC_UPLOAD_URL", "https://the.datachimp.app")
   upload_request <- httr::POST(
     paste0(base_url, "dataFileUpload"),
-    httr::add_headers("X-token" = mirror_auth_token),
+    httr::add_headers("X-token" = mirror_auth_token,
+                      'Content-Type' = 'text/plain'),
     body = httr::upload_file(path)
   )
   status_code <- httr::status_code(upload_request)
