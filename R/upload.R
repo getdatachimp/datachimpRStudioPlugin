@@ -2,7 +2,7 @@
 #' @export
 dc_upload <- function(path) {
   mirror_auth_token <- Sys.getenv("CHIMP_TOKEN")
-  base_url <- Sys.getenv("DC_UPLOAD_URL", "https://the.datachimp.app")
+  base_url <- Sys.getenv("DC_UPLOAD_URL", "https://the.datachimp.app/")
   upload_request <- httr::POST(
     paste0(base_url, "dataFileUpload"),
     httr::add_headers("X-token" = mirror_auth_token,
@@ -21,7 +21,7 @@ dc_upload <- function(path) {
 #' @export
 dc_download <- function(key) {
   mirror_auth_token <- Sys.getenv("CHIMP_TOKEN")
-  base_url <- Sys.getenv("DC_UPLOAD_URL", "https://the.datachimp.app")
+  base_url <- Sys.getenv("DC_UPLOAD_URL", "https://the.datachimp.app/")
   download_request <- httr::GET(
     paste0(base_url, "dataFileDownload", "?", "key=", key),
     httr::add_headers("X-token" = mirror_auth_token)
