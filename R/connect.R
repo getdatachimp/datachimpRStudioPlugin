@@ -99,6 +99,7 @@ get_last_valid_command <- function(lines) {
                      . == 'devtools::load_all(".")' ||
                      . == "datachimpR::connect()" ||
                      . == "datachimpR:::connect()" ||
+                     . == "renv::restore()" ||
                      startsWith(., "?") ||
                      grepl("dc_upload", .)
                    )
