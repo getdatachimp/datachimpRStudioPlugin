@@ -27,7 +27,6 @@ mirror_server_url <- ifelse(Sys.getenv("MIRROR_SERVER_URL") == "",
 #' @export
 connect <- function() {
   dc_env$dc_ws$onOpen(function(event) {
-    log("sending auth token")
     mirrorAuthToken <- Sys.getenv("CHIMP_TOKEN")
     dc_env$dc_ws$send(jsonlite::toJSON(list(mirrorAuthToken = mirrorAuthToken),
                              auto_unbox = TRUE))
@@ -37,7 +36,6 @@ connect <- function() {
     message <- jsonlite::fromJSON(event$data)
     if (message %>% pluck_str("type") == "sessionStatus" && message %>% pluck_str("envCreated") == T) {
       print("Connection opened\n")
-      timestamp(prefix = "## datachimp_start -- ")
       send()
     }
     if (message %>% pluck_str("type") == "executionResult" && length(message %>% purrr::pluck("response", "result")) == 0) {
@@ -68,8 +66,7 @@ connect <- function() {
 #' @importFrom magrittr %>%
 send <- function() {
   savehistory(file = ".DC_Rhistory")
-  file_contents <- readr::read_file(".DC_Rhistory") %>%
-    stringr::str_split("## datachimp_start --.+")[[2]]
+  file_contents <- readr::read_file(".DC_Rhistory")
   if (is.null(dc_env$old_file)) {
     lines <- stringr::str_split(file_contents, "\n")[[1]]
     if (safe_send(get_last_valid_command(lines))) {
@@ -101,8 +98,8 @@ get_last_valid_command <- function(lines) {
     purrr::discard(~ . == "" ||
                      . == 'devtools::load_all(".")' ||
                      . == "datachimpR::connect()" ||
+                     . == "datachimpR:::connect()" ||
                      startsWith(., "?") ||
-                     startsWith(., "datachimpR::add_token_to_renviron") ||
                      grepl("dc_upload", .)
                    )
   i <- length(trimmed_lines)
@@ -141,7 +138,6 @@ safe_send <- function(cmd) {
     dc_env$dc_ws$send(jsonlite::toJSON(list(type = "execute", cmd = cmd), auto_unbox = T))
     return(T)
   }
-  log("message is null or empty, not sending")
   return(F)
 }
 
